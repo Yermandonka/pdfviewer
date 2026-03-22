@@ -1,7 +1,7 @@
 "use client";
 
 import { useTutorStore } from "@/store/useTutorStore";
-import { BrainCircuit, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 export default function AiCompanion() {
@@ -22,18 +22,13 @@ export default function AiCompanion() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 bg-white border-b border-gray-200 shadow-sm z-10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BrainCircuit className="w-6 h-6 text-purple-600" />
-          <h2 className="text-xl font-semibold text-gray-800">AI Tutor Companion</h2>
-        </div>
-        
+      <div className="px-4 h-16 bg-neutral-800 border-b border-neutral-700 shadow-sm z-10 flex items-center justify-end shrink-0">
         {totalPages && (
-          <div className="flex items-center gap-3 text-sm text-gray-600">
+          <div className="flex items-center gap-3 text-sm text-neutral-400">
             <span>{progressPercentage}% Analyzed</span>
-            <div className="w-32 bg-gray-200 rounded-full h-2.5">
+            <div className="w-32 bg-neutral-700 rounded-full h-2.5">
               <div 
-                className="bg-purple-600 h-2.5 rounded-full transition-all duration-500" 
+                className="bg-purple-500 h-2.5 rounded-full transition-all duration-500" 
                 style={{ width: `${progressPercentage}%` }} 
               />
             </div>
@@ -41,34 +36,34 @@ export default function AiCompanion() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-10">
         {!currentExplanation || currentExplanation.status === "loading" ? (
           <div className="space-y-4 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-            <div className="pt-4 flex items-center gap-2 text-purple-600">
+            <div className="h-4 bg-neutral-700 rounded w-3/4"></div>
+            <div className="h-4 bg-neutral-700 rounded"></div>
+            <div className="h-4 bg-neutral-700 rounded"></div>
+            <div className="h-4 bg-neutral-700 rounded w-5/6"></div>
+            <div className="pt-4 flex items-center gap-2 text-purple-400">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="font-medium">Generating academic explanation...</span>
             </div>
           </div>
         ) : currentExplanation.status === "error" ? (
-          <div className="text-red-500 p-4 bg-red-50 rounded-lg border border-red-100">
+          <div className="text-red-400 p-4 bg-red-900/20 rounded-lg border border-red-900/50">
             Failed to generate explanation for this slide.
           </div>
         ) : (
-          <div className="prose max-w-none prose-p:text-black prose-headings:text-black prose-strong:text-black prose-li:text-black text-black">
+          <div className="prose prose-invert max-w-none text-justify">
             <ReactMarkdown>{currentExplanation.content}</ReactMarkdown>
           </div>
         )}
       </div>
 
       {currentExplanation?.status === "done" && (
-        <div className="p-4 bg-white border-t border-gray-200">
+        <div className="p-4 bg-neutral-800 border-t border-neutral-700">
           <button 
             onClick={handleRegenerate}
-            className="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors font-medium"
+            className="flex items-center justify-center gap-2 w-full py-2.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-lg border border-neutral-600 transition-colors font-medium"
           >
             <RefreshCw className="w-4 h-4" />
             Regenerate with more detail

@@ -14,8 +14,8 @@ export async function POST(req: Request) {
     const prompt = `
 Eres un asistente de profesor universitario experto en Ciencias de la Computación.
 Analiza el siguiente texto de la diapositiva y proporciona una explicación académica, detallada y clara de los conceptos presentados.
-Responde SIEMPRE en ESPAÑOL.
-Enfócate en temas como Aplicaciones Web, HTML5, CSS, Protocolos de Internet, PHP y Manejo de Sesiones si son relevantes.
+Responde SIEMPRE en ESPAÑOL.Además quiero que te adaptes a la cantidad de contenido de la página web, no te extiendas demasiado en 
+diapositivas con poca información.
 Usa formato Markdown para una mejor legibilidad (listas, negritas, etc.).
 
 Contenido de la Diapositiva ${pageNumber}:

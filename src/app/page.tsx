@@ -7,7 +7,7 @@ const PdfApp = dynamic(() => import('@/components/PdfApp'), { ssr: false });
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-neutral-900 text-neutral-200">
       <PdfApp />
     </main>
   );

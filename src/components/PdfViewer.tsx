@@ -80,36 +80,36 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
   }, [currentPage, pdfDoc, ensurePageExplained]);
 
   return (
-    <div className="flex flex-col h-full bg-gray-100">
-      <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm z-10">
-        <h2 className="text-lg font-semibold text-gray-800">Presentation Viewer</h2>
+    <div className="flex flex-col h-full bg-neutral-900">
+      <div className="flex items-center justify-between px-4 h-16 bg-neutral-800 border-b border-neutral-700 shadow-sm z-10 shrink-0">
+        <h2 className="text-lg font-semibold text-neutral-200">Presentation Viewer</h2>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
             disabled={currentPage <= 1}
-            className="p-2 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            className="p-2 rounded hover:bg-neutral-700 text-neutral-300 disabled:opacity-50 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <span className="text-sm font-medium text-gray-600">
+          <span className="text-sm font-medium text-neutral-400">
             Page {currentPage} of {numPages || "?"}
           </span>
           <button
             onClick={() => setCurrentPage(Math.min(currentPage + 1, numPages || 1))}
             disabled={currentPage >= (numPages || 1)}
-            className="p-2 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            className="p-2 rounded hover:bg-neutral-700 text-neutral-300 disabled:opacity-50 transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto flex justify-center p-8" ref={containerRef}>
+      <div className="flex-1 overflow-auto flex justify-center items-center p-8" ref={containerRef}>
         <Document
           file={fileUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={
-            <div className="flex items-center gap-2 text-gray-500 mt-20">
+            <div className="flex items-center gap-2 text-neutral-400">
               <Loader2 className="w-6 h-6 animate-spin" /> Loading PDF...
             </div>
           }

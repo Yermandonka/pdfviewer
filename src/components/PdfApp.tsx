@@ -16,10 +16,10 @@ export default function PdfApp() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 overflow-hidden">
+    <div className="flex h-screen w-full bg-neutral-900 overflow-hidden text-neutral-200">
       {!fileUrl ? (
         <div className="flex-1 flex flex-col items-center justify-center">
-          <h1 className="text-3xl font-bold mb-4 text-gray-800">AI-Powered PDF Tutor</h1>
+          <h1 className="text-3xl font-bold mb-4 text-neutral-100">pdfviewer</h1>
           <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium shadow-md transition-all">
             Upload PDF Slide
             <input type="file" accept="application/pdf" className="hidden" onChange={handleFileUpload} />
@@ -27,10 +27,10 @@ export default function PdfApp() {
         </div>
       ) : (
         <>
-          <div className="w-1/2 h-full border-r border-gray-200 overflow-hidden flex flex-col bg-white">
+          <div className="w-1/2 h-full border-r border-neutral-700 overflow-hidden flex flex-col bg-neutral-900">
             <PdfViewer fileUrl={fileUrl} />
           </div>
-          <div className="w-1/2 h-full overflow-hidden flex flex-col bg-gray-50">
+          <div className="w-1/2 h-full overflow-hidden flex flex-col bg-neutral-800 shadow-inner">
             <AiCompanion />
           </div>
         </>
