@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useTutorStore } from "@/store/useTutorStore";
+import { saveExplanation } from "@/lib/db";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -16,7 +17,7 @@ interface PdfViewerProps {
 export default function PdfViewer({ fileUrl }: PdfViewerProps) {
   const [numPages, setNumPages] = useState<number>();
   const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const { currentPage, setCurrentPage, setTotalPages, explanations, setExplanationStatus } = useTutorStore();
+  const { currentPage, setCurrentPage, setTotalPages, explanations, setExplanationStatus, activeDocumentId } = useTutorStore();
   const prefetchingRef = useRef<Set<number>>(new Set());
   
   const [containerWidth, setContainerWidth] = useState<number>(800);
@@ -65,11 +66,14 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
       
       const data = await res.json();
       setExplanationStatus(pageIndex, "done", data.explanation);
+      if (activeDocumentId) {
+        saveExplanation(activeDocumentId, pageIndex, data.explanation).catch(console.error);
+      }
     } catch (error) {
       console.error(error);
       setExplanationStatus(pageIndex, "error");
     }
-  }, [explanations, pdfDoc, setExplanationStatus]);
+  }, [explanations, pdfDoc, setExplanationStatus, activeDocumentId]);
 
   useEffect(() => {
     if (pdfDoc) {
