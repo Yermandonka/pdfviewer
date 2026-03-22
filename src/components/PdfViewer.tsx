@@ -20,20 +20,35 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
   const { currentPage, setCurrentPage, setTotalPages, explanations, setExplanationStatus, activeDocumentId } = useTutorStore();
   const prefetchingRef = useRef<Set<number>>(new Set());
   
-  const [containerWidth, setContainerWidth] = useState<number>(800);
+  const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
+  const [pageAspect, setPageAspect] = useState<number>(1.5);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const updateWidth = () => {
+    const updateSize = () => {
       if (containerRef.current) {
-        // Leave some margin (64px total padding)
-        setContainerWidth(containerRef.current.clientWidth - 64);
+        setContainerSize({
+          width: containerRef.current.clientWidth,
+          height: Math.max(containerRef.current.clientHeight, 200) // Ensure a min height
+        });
       }
     };
     
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    updateSize();
+    
+    const resizeObserver = new ResizeObserver(() => {
+      updateSize();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    window.addEventListener('resize', updateSize);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
   }, []);
 
   const onDocumentLoadSuccess = (doc: any) => {
@@ -102,6 +117,13 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentPage, numPages, setCurrentPage]);
 
+  const PADDING = 64;
+  const baseWidth = 1400; // Render at high quality
+  const baseHeight = baseWidth / pageAspect;
+  const availableWidth = Math.max(0, containerSize.width - PADDING);
+  const availableHeight = Math.max(0, containerSize.height - PADDING);
+  const scale = Math.max(0.1, Math.min(availableWidth / baseWidth, availableHeight / baseHeight));
+
   return (
     <div className="flex flex-col h-full bg-neutral-900">
       <div className="flex items-center justify-between px-4 h-16 bg-neutral-800 border-b border-neutral-700 shadow-sm z-10 shrink-0">
@@ -127,24 +149,39 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto flex justify-center items-center p-8" ref={containerRef}>
-        <Document
-          file={fileUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={
-            <div className="flex items-center gap-2 text-neutral-400">
-              <Loader2 className="w-6 h-6 animate-spin" /> Loading PDF...
-            </div>
-          }
+      <div className="flex-1 overflow-hidden relative flex justify-center items-center" ref={containerRef}>
+        <div 
+          style={{ 
+            transform: `scale(${scale})`, 
+            transformOrigin: 'center center',
+            width: `${baseWidth}px`,
+            height: `${baseHeight}px`,
+            willChange: 'transform'
+          }} 
+          className="flex justify-center items-center"
         >
-          <Page 
-            pageNumber={currentPage} 
-            renderTextLayer={true}
-            renderAnnotationLayer={true}
-            className="shadow-xl"
-            width={containerWidth}
-          />
-        </Document>
+          <Document
+            file={fileUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            loading={
+              <div className="flex items-center gap-2 text-neutral-400" style={{ transform: `scale(${1/scale})` }}>
+                <Loader2 className="w-6 h-6 animate-spin" /> Loading PDF...
+              </div>
+            }
+          >
+            <Page 
+              pageNumber={currentPage} 
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+              className="shadow-[0_4px_30px_rgba(0,0,0,0.5)] bg-white"
+              width={baseWidth}
+              onLoadSuccess={(page) => {
+                const viewport = page.getViewport({ scale: 1 });
+                setPageAspect(viewport.width / viewport.height);
+              }}
+            />
+          </Document>
+        </div>
       </div>
     </div>
   );

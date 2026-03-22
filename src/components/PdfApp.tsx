@@ -6,11 +6,12 @@ import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { saveDocument, getDocuments, DocumentMeta, getDocumentBlob, getExplanations, deleteDocument } from "@/lib/db";
 import { useTutorStore } from "@/store/useTutorStore";
-import { FileText, Upload, Trash2, ArrowLeft } from "lucide-react";
+import { FileText, Upload, Trash2, ArrowLeft, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 export default function PdfApp() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [docs, setDocs] = useState<DocumentMeta[]>([]);
+  const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const { activeDocumentId, setActiveDocument, loadExplanations, resetDocState, setCurrentPage } = useTutorStore();
 
   const refreshDocs = async () => {
@@ -107,18 +108,27 @@ export default function PdfApp() {
 
   return (
     <div className="flex h-screen w-full bg-neutral-900 overflow-hidden text-neutral-200 flex-col">
-      <header className="px-4 h-12 border-b border-neutral-800 bg-neutral-950 flex items-center">
+      <header className="px-4 h-12 border-b border-neutral-800 bg-neutral-950 flex items-center justify-between">
          <button onClick={closeDocument} className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors py-1.5 px-3 rounded hover:bg-neutral-800">
             <ArrowLeft className="w-4 h-4" /> Back to Explorer
          </button>
+         <button 
+           onClick={() => setIsAiPanelVisible(!isAiPanelVisible)} 
+           className={`flex items-center justify-center p-2 rounded-lg transition-all duration-300 ${!isAiPanelVisible ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.8)] hover:shadow-[0_0_25px_rgba(255,255,255,1)]' : 'text-neutral-400 hover:text-white hover:bg-neutral-800 hover:shadow-[0_0_10px_rgba(255,255,255,0.3)]'}`}
+           title={isAiPanelVisible ? "Hide Tutor" : "Show Tutor"}
+         >
+           {isAiPanelVisible ? <PanelRightClose className="w-5 h-5" /> : <PanelRightOpen className="w-5 h-5" />}
+         </button>
       </header>
       <div className="flex flex-1 overflow-hidden relative">
-        <div className="w-1/2 h-full border-r border-neutral-700 overflow-hidden flex flex-col bg-neutral-900">
+        <div className={`${isAiPanelVisible ? 'w-1/2' : 'w-full'} h-full border-r border-neutral-700 overflow-hidden flex flex-col bg-neutral-900 transition-all duration-300`}>
           <PdfViewer fileUrl={fileUrl!} />
         </div>
-        <div className="w-1/2 h-full overflow-hidden flex flex-col bg-neutral-800 shadow-inner">
-          <AiCompanion />
-        </div>
+        {isAiPanelVisible && (
+          <div className="w-1/2 h-full overflow-hidden flex flex-col bg-neutral-800 shadow-inner transition-all duration-300">
+            <AiCompanion />
+          </div>
+        )}
       </div>
     </div>
   );
