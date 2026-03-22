@@ -54,7 +54,31 @@ export default function AiCompanion() {
           </div>
         ) : (
           <div className="prose prose-invert max-w-none text-justify">
-            <ReactMarkdown>{currentExplanation.content}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                strong: ({ node, ...props }) => {
+                  const contentString = String(props.children);
+                  const colors = [
+                    "bg-blue-200 text-blue-950",
+                    "bg-yellow-200 text-yellow-950",
+                    "bg-red-200 text-red-950",
+                    "bg-green-200 text-green-950",
+                    "bg-pink-200 text-pink-950",
+                  ];
+                  // Deterministic color assignment based on content
+                  const hash = contentString.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                  const colorClass = colors[hash % colors.length];
+                  
+                  return (
+                    <mark className={`${colorClass} px-1.5 py-0.5 mx-0.5 rounded font-bold`}>
+                      {props.children}
+                    </mark>
+                  );
+                }
+              }}
+            >
+              {currentExplanation.content}
+            </ReactMarkdown>
           </div>
         )}
       </div>

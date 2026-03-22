@@ -26,18 +26,23 @@ body {
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar {
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #404040 #171717;
+}
+
+*::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-::-webkit-scrollbar-track {
-  background: #171717; /* neutral-900 */
+*::-webkit-scrollbar-track {
+  background: #171717;
 }
-::-webkit-scrollbar-thumb {
-  background: #404040; /* neutral-700 */
+*::-webkit-scrollbar-thumb {
+  background: #404040;
   border-radius: 5px;
-  border: 2px solid #171717; /* creates a padded look */
+  border: 2px solid #171717;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #525252; /* neutral-600 */
+*::-webkit-scrollbar-thumb:hover {
+  background: #525252;
 }
