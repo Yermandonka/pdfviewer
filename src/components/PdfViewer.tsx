@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useTutorStore } from "@/store/useTutorStore";
-import { saveExplanation } from "@/lib/db";
+import { saveExplanation, updateDocumentPage } from "@/lib/db";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -81,7 +81,26 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
       // Pre-fetch next page silently
       ensurePageExplained(currentPage + 1);
     }
-  }, [currentPage, pdfDoc, ensurePageExplained]);
+    if (activeDocumentId) {
+      updateDocumentPage(activeDocumentId, currentPage).catch(console.error);
+    }
+  }, [currentPage, pdfDoc, ensurePageExplained, activeDocumentId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if (e.key === "ArrowLeft") {
+        setCurrentPage(Math.max(currentPage - 1, 1));
+      } else if (e.key === "ArrowRight") {
+        setCurrentPage(Math.min(currentPage + 1, numPages || 1));
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentPage, numPages, setCurrentPage]);
 
   return (
     <div className="flex flex-col h-full bg-neutral-900">

@@ -11,7 +11,7 @@ import { FileText, Upload, Trash2, ArrowLeft } from "lucide-react";
 export default function PdfApp() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [docs, setDocs] = useState<DocumentMeta[]>([]);
-  const { activeDocumentId, setActiveDocument, loadExplanations, resetDocState } = useTutorStore();
+  const { activeDocumentId, setActiveDocument, loadExplanations, resetDocState, setCurrentPage } = useTutorStore();
 
   const refreshDocs = async () => {
     setDocs(await getDocuments());
@@ -29,7 +29,7 @@ export default function PdfApp() {
     }
   };
 
-  const openDocument = async (id: string) => {
+  const openDocument = async (id: string, lastPage?: number) => {
     const blob = await getDocumentBlob(id);
     if (!blob) return;
     const exps = await getExplanations(id);
@@ -38,12 +38,14 @@ export default function PdfApp() {
     setActiveDocument(id);
     setFileUrl(URL.createObjectURL(blob));
     loadExplanations(exps as any);
+    if (lastPage) setCurrentPage(lastPage);
   };
 
-  const closeDocument = () => {
+  const closeDocument = async () => {
     if (fileUrl) URL.revokeObjectURL(fileUrl);
     setFileUrl(null);
     resetDocState();
+    await refreshDocs();
   };
 
   const removeDoc = async (id: string, e: any) => {
@@ -75,7 +77,7 @@ export default function PdfApp() {
               {docs.map((doc) => (
                 <div 
                   key={doc.id} 
-                  onClick={() => openDocument(doc.id)}
+                  onClick={() => openDocument(doc.id, doc.lastPage)}
                   className="bg-neutral-800 border border-neutral-700 rounded-xl p-5 hover:bg-neutral-700 hover:border-blue-500 cursor-pointer shadow-sm transition-all flex flex-col group transform hover:-translate-y-1"
                 >
                   <div className="flex-1 flex items-center justify-center py-6 text-blue-400">

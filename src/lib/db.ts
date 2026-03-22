@@ -4,6 +4,7 @@ export interface DocumentMeta {
   id: string;
   name: string;
   timestamp: number;
+  lastPage?: number;
 }
 
 export const dbFiles = localforage.createInstance({ name: 'pdfviewer', storeName: 'files' });
@@ -18,7 +19,15 @@ export const getDocuments = async (): Promise<DocumentMeta[]> => {
 
 export const saveDocument = async (id: string, name: string, blob: Blob) => {
   await dbFiles.setItem(id, blob);
-  await dbMeta.setItem(id, { id, name, timestamp: Date.now() });
+  await dbMeta.setItem(id, { id, name, timestamp: Date.now(), lastPage: 1 });
+};
+
+export const updateDocumentPage = async (id: string, page: number) => {
+  const meta: any = await dbMeta.getItem(id);
+  if (meta) {
+    meta.lastPage = page;
+    await dbMeta.setItem(id, meta);
+  }
 };
 
 export const getDocumentBlob = async (id: string): Promise<Blob | null> => {
