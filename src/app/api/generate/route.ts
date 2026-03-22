@@ -38,12 +38,8 @@ Reglas:
     });
 
     if (!response.ok) {
-       const errText = await response.text();
-       console.error("Gemini API error", response.status, errText);
-       if (response.status === 429) {
-          return NextResponse.json({ error: 'Límite de peticiones gratuitas alcanzado (Google permite 15 por minuto). Espera 1 minuto.' }, { status: 429 });
-       }
-       return NextResponse.json({ error: `Error remoto con Gemini HTTP ${response.status}.` }, { status: 502 });
+       console.error("Gemini API error", response.status, await response.text());
+       return NextResponse.json({ error: 'Error al contactar con Gemini.' }, { status: 502 });
     }
 
     const data = await response.json();
