@@ -64,12 +64,13 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
     if (explanations[pageIndex] || prefetchingRef.current.has(pageIndex)) return;
 
     prefetchingRef.current.add(pageIndex);
-    setExplanationStatus(pageIndex, "loading");
-
+    // Extraemos el texto antes de setearlo en loading para ya pasarlo al estado
     try {
       const page = await doc.getPage(pageIndex);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item: any) => item.str).join(" ");
+      
+      setExplanationStatus(pageIndex, "loading", undefined, pageText);
 
       const res = await fetch("/api/explain", {
         method: "POST",
@@ -80,7 +81,7 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
       if (!res.ok) throw new Error("API Error");
       
       const data = await res.json();
-      setExplanationStatus(pageIndex, "done", data.explanation);
+      setExplanationStatus(pageIndex, "done", data.explanation, pageText);
       if (activeDocumentId) {
         saveExplanation(activeDocumentId, pageIndex, data.explanation).catch(console.error);
       }
