@@ -33,7 +33,7 @@ Pregunta del estudiante: "${query}"
 
 Responde a la pregunta basándote en la diapositiva de forma clara y concisa en ESPAÑOL. 
 Presta atención al contexto de la materia. Si aplicara, usa ejemplos sencillos para aclarar conceptos difíciles. 
-Usa formato Markdown. Si vas a utilizar fórmulas matemáticas, escríbelas en formato LaTeX usando \`$\` para fórmulas en línea y \`$$\` para fórmulas en bloque.
+Usa formato Markdown. Si vas a utilizar fórmulas matemáticas, escríbelas en formato LaTeX usando \`$\` para fórmulas en línea y \`$$\` para fórmulas en bloque. **PROHIBIDO** usar etiquetas HTML como <sub> o <sup> para índices o exponentes, usa SIEMPRE LaTeX (ej. $\\beta_0$). Incluso dentro de negritas, usa LaTeX (ej. **$\\beta_0$**).
     `.trim();
 
     const response = await ai.models.generateContent({
