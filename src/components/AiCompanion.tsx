@@ -3,6 +3,9 @@
 import { useTutorStore } from "@/store/useTutorStore";
 import { Loader2, RefreshCw, Send, User, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { useState, useEffect, useRef } from "react";
 
 export default function AiCompanion() {
@@ -51,14 +54,24 @@ export default function AiCompanion() {
         }),
       });
 
-      if (res.status === 429) throw new Error("RATE_LIMIT");
-      if (!res.ok) throw new Error("API Error");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        const errMsg = errData?.error || "Error al conectar con la API";
+        if (res.status === 429 || errMsg === "RATE_LIMIT") {
+          setExplanationStatus(currentPage, "error", "⚠️ Límite de la IA alcanzado. Por favor, espera unos instantes.", currentExplanation.pageText);
+        } else if (res.status === 401 || errMsg?.includes("API Key")) {
+          setExplanationStatus(currentPage, "error", "⚠️ Tu Google API Key es incorrecta o inválida.", currentExplanation.pageText);
+        } else {
+          setExplanationStatus(currentPage, "error", `❌ Error de Gemini: ${errMsg}`, currentExplanation.pageText);
+        }
+        return;
+      }
+      
       const data = await res.json();
       setExplanationStatus(currentPage, "done", data.explanation, currentExplanation.pageText);
     } catch (error: any) {
       console.error(error);
-      const isRateLimit = error.message === "RATE_LIMIT";
-      setExplanationStatus(currentPage, "error", isRateLimit ? "⚠️ Límite de la IA alcanzado. Por favor, espera unos instantes." : undefined, currentExplanation.pageText);
+      setExplanationStatus(currentPage, "error", "Error interno en el navegador.", currentExplanation.pageText);
     }
   };
 
@@ -88,15 +101,24 @@ export default function AiCompanion() {
         }),
       });
 
-      if (res.status === 429) throw new Error("RATE_LIMIT");
-      if (!res.ok) throw new Error("API Error");
-      const data = await res.json();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        const errMsg = errData?.error || "Error de red";
+        if (res.status === 429 || errMsg === "RATE_LIMIT") {
+          setChatMessages(prev => [...prev, { role: 'ai', content: "⚠️ **Límite de la IA alcanzado.** Por favor, espera unos instantes e inténtalo de nuevo." }]);
+        } else if (res.status === 401 || errMsg?.includes("API Key")) {
+          setChatMessages(prev => [...prev, { role: 'ai', content: "⚠️ **API Key Inválida.** Revisa tu clave de Google Gemini." }]);
+        } else {
+          setChatMessages(prev => [...prev, { role: 'ai', content: `❌ Error: ${errMsg}` }]);
+        }
+        return;
+      }
       
+      const data = await res.json();
       setChatMessages(prev => [...prev, { role: 'ai', content: data.answer }]);
     } catch (error: any) {
       console.error("Chat Error:", error);
-      const isRateLimit = error.message === "RATE_LIMIT";
-      setChatMessages(prev => [...prev, { role: 'ai', content: isRateLimit ? "⚠️ **Límite de la IA alcanzado.** Por favor, espera unos instantes e inténtalo de nuevo." : "Lo siento, ha ocurrido un error al intentar responder." }]);
+      setChatMessages(prev => [...prev, { role: 'ai', content: "Lo siento, ocurrió un error interno al intentar responder." }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -148,6 +170,8 @@ export default function AiCompanion() {
           <>
             <div className="prose prose-invert max-w-none text-justify">
               <ReactMarkdown
+                remarkPlugins={[remarkMath]}
+                rehypePlugins={[rehypeKatex]}
                 components={{
                   strong: ({ node, ...props }) => {
                     const contentString = String(props.children);
@@ -205,7 +229,12 @@ export default function AiCompanion() {
                       {msg.role === 'user' ? (
                         <p className="text-sm m-0">{msg.content}</p>
                       ) : (
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkMath]} 
+                          rehypePlugins={[rehypeKatex]}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
                       )}
                     </div>
                     {msg.role === 'user' && (

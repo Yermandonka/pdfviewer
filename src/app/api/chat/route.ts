@@ -33,7 +33,7 @@ Pregunta del estudiante: "${query}"
 
 Responde a la pregunta basándote en la diapositiva de forma clara y concisa en ESPAÑOL. 
 Presta atención al contexto de la materia. Si aplicara, usa ejemplos sencillos para aclarar conceptos difíciles. 
-Usa formato Markdown.
+Usa formato Markdown. Si vas a utilizar fórmulas matemáticas, escríbelas en formato LaTeX usando \`$\` para fórmulas en línea y \`$$\` para fórmulas en bloque.
     `.trim();
 
     const response = await ai.models.generateContent({

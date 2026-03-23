@@ -59,9 +59,11 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
     ensurePageExplained(1, doc);
   };
 
-  const ensurePageExplained = useCallback(async (pageIndex: number, doc: any = pdfDoc) => {
+  const ensurePageExplained = useCallback(async (pageIndex: number, doc: any = pdfDoc, force = false) => {
     if (!doc || pageIndex > doc.numPages) return;
-    if (explanations[pageIndex] || prefetchingRef.current.has(pageIndex)) return;
+    
+    if (explanations[pageIndex]?.status === "done") return;
+    if (!force && (explanations[pageIndex] || prefetchingRef.current.has(pageIndex))) return;
 
     prefetchingRef.current.add(pageIndex);
     // Extraemos el texto antes de setearlo en loading para ya pasarlo al estado
@@ -95,10 +97,19 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
         }),
       });
 
-      if (res.status === 429) {
-        throw new Error("RATE_LIMIT");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        const errMsg = errData?.error || "Error al conectar con la API";
+        
+        if (res.status === 429 || errMsg === "RATE_LIMIT") {
+          setExplanationStatus(pageIndex, "error", "⚠️ Has superado el límite de peticiones de la IA (30 peticiones por minuto). Espera unos instantes.", pageText);
+        } else if (res.status === 401 || errMsg?.includes("API Key")) {
+          setExplanationStatus(pageIndex, "error", "⚠️ Tu Google API Key es incorrecta o inválida. Haz clic en 'Quitar API Key' arriba y pon una correcta.", pageText);
+        } else {
+          setExplanationStatus(pageIndex, "error", `❌ Error de Gemini: ${errMsg}`, pageText);
+        }
+        return;
       }
-      if (!res.ok) throw new Error("API Error");
       
       const data = await res.json();
       setExplanationStatus(pageIndex, "done", data.explanation, pageText);
@@ -107,30 +118,61 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
       }
     } catch (error: any) {
       console.error(error);
-      const isRateLimit = error.message === "RATE_LIMIT";
-      setExplanationStatus(
-        pageIndex, 
-        "error", 
-        isRateLimit ? "⚠️ Has superado el límite de peticiones de la IA (30 peticiones por minuto). Por favor, intenta de nuevo en unos momentos." : "Error al conectarse a la API web.", 
-        pageText || undefined
-      );
+      setExplanationStatus(pageIndex, "error", "Error interno en el navegador.", pageText || undefined);
     }
   }, [explanations, pdfDoc, setExplanationStatus, activeDocumentId]);
+
+  const explanationQueue = useRef<number[]>([]);
+  const isProcessingQueue = useRef(false);
+
+  const processQueue = useCallback(async () => {
+    if (isProcessingQueue.current) return;
+    isProcessingQueue.current = true;
+
+    while (explanationQueue.current.length > 0) {
+      const pageToProcess = explanationQueue.current[0];
+      
+      const status = useTutorStore.getState().explanations[pageToProcess]?.status;
+      if (status !== "done") {
+        await ensurePageExplained(pageToProcess, pdfDoc, true);
+      }
+      
+      explanationQueue.current.shift();
+
+      if (explanationQueue.current.length > 0) {
+        await new Promise(res => setTimeout(res, 2500)); // Respect API limits (2.5s)
+      }
+    }
+
+    isProcessingQueue.current = false;
+  }, [ensurePageExplained, pdfDoc]);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (pdfDoc) {
-      // Si el usuario cambia rápido de página, limpiamos el temporizador anterior
       if (timerRef.current) clearTimeout(timerRef.current);
 
-      // Si es la página 1, la generamos instantáneamente, sino esperamos 600ms
-      const delay = currentPage === 1 && !explanations[1] ? 0 : 600;
+      const delay = currentPage === 1 && !useTutorStore.getState().explanations[1] ? 0 : 600;
 
       timerRef.current = setTimeout(() => {
-        ensurePageExplained(currentPage);
-        // Pre-fetch next page silently
-        ensurePageExplained(currentPage + 1);
+        let added = false;
+        
+        // Enqueue missing pages strictly from 1 up to currentPage + 1
+        const maxPage = Math.min(currentPage + 1, pdfDoc.numPages);
+        for (let p = 1; p <= maxPage; p++) {
+          const status = useTutorStore.getState().explanations[p]?.status;
+          if (status !== "done" && status !== "error" && !explanationQueue.current.includes(p)) {
+            // Set loading visually so user knows it's queued
+            setExplanationStatus(p, "loading", undefined, undefined); 
+            explanationQueue.current.push(p);
+            added = true;
+          }
+        }
+
+        if (added) {
+          processQueue();
+        }
       }, delay);
     }
 
@@ -141,7 +183,7 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [currentPage, pdfDoc, ensurePageExplained, activeDocumentId, explanations]);
+  }, [currentPage, pdfDoc, activeDocumentId, processQueue, setExplanationStatus]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
