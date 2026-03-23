@@ -73,10 +73,26 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
       
       setExplanationStatus(pageIndex, "loading", undefined, pageText);
 
+      const previousContext: string[] = [];
+      const HISTORY_PAGES = 2;
+      for (let i = Math.max(1, pageIndex - HISTORY_PAGES); i < pageIndex; i++) {
+        const exp = useTutorStore.getState().explanations[i];
+        if (exp && exp.status === "done" && exp.content) {
+          // Tomamos hasta 600 caracteres del final para dar contexto sin gastar muchos tokens
+          const snippet = exp.content.length > 600 ? "..." + exp.content.slice(-600) : exp.content;
+          previousContext.push(`[En la diapositiva ${i} explicaste:] ${snippet}`);
+        }
+      }
+
       const res = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: useTutorStore.getState().apiKey, pageText, pageNumber: pageIndex }),
+        body: JSON.stringify({ 
+          apiKey: useTutorStore.getState().apiKey, 
+          pageText, 
+          pageNumber: pageIndex,
+          previousContext
+        }),
       });
 
       if (res.status === 429) {
