@@ -65,19 +65,23 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
 
     prefetchingRef.current.add(pageIndex);
     // Extraemos el texto antes de setearlo en loading para ya pasarlo al estado
+    let pageText = "";
     try {
       const page = await doc.getPage(pageIndex);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(" ");
+      pageText = textContent.items.map((item: any) => item.str).join(" ");
       
       setExplanationStatus(pageIndex, "loading", undefined, pageText);
 
       const res = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageText, pageNumber: pageIndex }),
+        body: JSON.stringify({ apiKey: useTutorStore.getState().apiKey, pageText, pageNumber: pageIndex }),
       });
 
+      if (res.status === 429) {
+        throw new Error("RATE_LIMIT");
+      }
       if (!res.ok) throw new Error("API Error");
       
       const data = await res.json();
@@ -85,22 +89,43 @@ export default function PdfViewer({ fileUrl }: PdfViewerProps) {
       if (activeDocumentId) {
         saveExplanation(activeDocumentId, pageIndex, data.explanation).catch(console.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setExplanationStatus(pageIndex, "error");
+      const isRateLimit = error.message === "RATE_LIMIT";
+      setExplanationStatus(
+        pageIndex, 
+        "error", 
+        isRateLimit ? "⚠️ Has superado el límite de peticiones de la IA (30 peticiones por minuto). Por favor, intenta de nuevo en unos momentos." : "Error al conectarse a la API web.", 
+        pageText || undefined
+      );
     }
   }, [explanations, pdfDoc, setExplanationStatus, activeDocumentId]);
 
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (pdfDoc) {
-      ensurePageExplained(currentPage);
-      // Pre-fetch next page silently
-      ensurePageExplained(currentPage + 1);
+      // Si el usuario cambia rápido de página, limpiamos el temporizador anterior
+      if (timerRef.current) clearTimeout(timerRef.current);
+
+      // Si es la página 1, la generamos instantáneamente, sino esperamos 600ms
+      const delay = currentPage === 1 && !explanations[1] ? 0 : 600;
+
+      timerRef.current = setTimeout(() => {
+        ensurePageExplained(currentPage);
+        // Pre-fetch next page silently
+        ensurePageExplained(currentPage + 1);
+      }, delay);
     }
+
     if (activeDocumentId) {
       updateDocumentPage(activeDocumentId, currentPage).catch(console.error);
     }
-  }, [currentPage, pdfDoc, ensurePageExplained, activeDocumentId]);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [currentPage, pdfDoc, ensurePageExplained, activeDocumentId, explanations]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -12,13 +12,20 @@ export default function PdfApp() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [docs, setDocs] = useState<DocumentMeta[]>([]);
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
-  const { activeDocumentId, setActiveDocument, loadExplanations, resetDocState, setCurrentPage } = useTutorStore();
+  const { activeDocumentId, setActiveDocument, loadExplanations, resetDocState, setCurrentPage, apiKey, setApiKey } = useTutorStore();
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [tempKey, setTempKey] = useState("");
 
   const refreshDocs = async () => {
     setDocs(await getDocuments());
   };
 
-  useEffect(() => { refreshDocs(); }, []);
+  useEffect(() => { 
+    const savedKey = localStorage.getItem("user_gemini_api_key");
+    if (savedKey) setApiKey(savedKey);
+    setIsInitializing(false);
+    refreshDocs(); 
+  }, [setApiKey]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,16 +62,67 @@ export default function PdfApp() {
     refreshDocs();
   };
 
+  const handleClearKey = () => {
+    localStorage.removeItem("user_gemini_api_key");
+    setApiKey(null);
+  };
+
+  const handleSaveKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (tempKey.trim()) {
+      localStorage.setItem("user_gemini_api_key", tempKey.trim());
+      setApiKey(tempKey.trim());
+    }
+  };
+
+  if (isInitializing) return <div className="h-screen bg-neutral-900 w-full animate-pulse"></div>;
+
+  if (!apiKey) {
+    return (
+      <div className="flex h-screen w-full bg-neutral-950 items-center justify-center text-neutral-200 p-4">
+        <div className="max-w-md w-full bg-neutral-900 p-8 rounded-2xl border border-neutral-800 shadow-2xl">
+          <h2 className="text-2xl font-bold mb-2">Bienvenido a pdfviewer</h2>
+          <p className="text-neutral-400 mb-6 text-sm">Para continuar, necesitas proporcionar tu propia Google Gemini API Key. Esta clave se guardará localmente en tu navegador.</p>
+          <form onSubmit={handleSaveKey} className="flex flex-col gap-4">
+            <input
+              type="password"
+              value={tempKey}
+              onChange={(e) => setTempKey(e.target.value)}
+              placeholder="AIzaSy..."
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-neutral-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={!tempKey.trim()}
+              className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-neutral-800 disabled:text-neutral-500 text-white rounded-lg font-medium transition-colors"
+            >
+              Guardar y Continuar
+            </button>
+          </form>
+          <p className="text-xs text-neutral-500 mt-4 text-center">
+            Puedes obtener una gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-purple-400 hover:text-purple-300 underline">Google AI Studio</a>.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!activeDocumentId) {
     return (
       <div className="flex flex-col h-screen w-full bg-neutral-900 overflow-hidden text-neutral-200">
         <header className="px-8 py-6 border-b border-neutral-800 flex justify-between items-center bg-neutral-950">
           <h1 className="text-2xl font-bold">pdfviewer Explorer</h1>
-          <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-md transition-all flex items-center gap-2">
-            <Upload className="w-5 h-5" />
-            Upload PDF
-            <input type="file" accept="application/pdf" className="hidden" onChange={handleFileUpload} />
-          </label>
+          <div className="flex items-center gap-4">
+            <button onClick={handleClearKey} className="text-sm text-neutral-500 hover:text-red-400 transition-colors">
+               Quitar API Key
+            </button>
+            <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-md transition-all flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              Upload PDF
+              <input type="file" accept="application/pdf" className="hidden" onChange={handleFileUpload} />
+            </label>
+          </div>
         </header>
         <main className="flex-1 px-8 py-10 overflow-y-auto bg-neutral-900 border-t border-neutral-950">
           {docs.length === 0 ? (

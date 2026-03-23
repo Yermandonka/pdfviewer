@@ -1,15 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
-const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY }); // User put NEXT_PUBLIC prefix
-
 export async function POST(req: Request) {
   try {
-    const { pageText, pageNumber, detailed } = await req.json();
+    const { apiKey, pageText, pageNumber, detailed } = await req.json();
+
+    if (!apiKey) {
+      return NextResponse.json({ error: "API Key missing" }, { status: 401 });
+    }
 
     if (!pageText) {
       return NextResponse.json({ error: "Missing page text" }, { status: 400 });
     }
+
+    const ai = new GoogleGenAI({ apiKey });
 
     let prompt = `
 Eres un asistente de profesor universitario experto en Ciencias de la Computación.
@@ -37,8 +41,11 @@ ${pageText}
     });
 
     return NextResponse.json({ explanation: response.text });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
+    if (error?.status === 429) {
+      return NextResponse.json({ error: "RATE_LIMIT" }, { status: 429 });
+    }
     return NextResponse.json({ error: "Failed to generate explanation" }, { status: 500 });
   }
 }

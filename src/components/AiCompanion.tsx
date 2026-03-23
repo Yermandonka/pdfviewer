@@ -44,18 +44,21 @@ export default function AiCompanion() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
+          apiKey: useTutorStore.getState().apiKey,
           pageText: currentExplanation.pageText, 
           pageNumber: currentPage,
           detailed: true
         }),
       });
 
+      if (res.status === 429) throw new Error("RATE_LIMIT");
       if (!res.ok) throw new Error("API Error");
       const data = await res.json();
       setExplanationStatus(currentPage, "done", data.explanation, currentExplanation.pageText);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setExplanationStatus(currentPage, "error", undefined, currentExplanation.pageText);
+      const isRateLimit = error.message === "RATE_LIMIT";
+      setExplanationStatus(currentPage, "error", isRateLimit ? "⚠️ Límite de la IA alcanzado. Por favor, espera unos instantes." : undefined, currentExplanation.pageText);
     }
   };
 
@@ -78,19 +81,22 @@ export default function AiCompanion() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
+          apiKey: useTutorStore.getState().apiKey,
           pageText: currentExplanation.pageText, 
           query: userMessage,
-          history: chatMessages
+          history: chatMessages.slice(-4)
         }),
       });
 
+      if (res.status === 429) throw new Error("RATE_LIMIT");
       if (!res.ok) throw new Error("API Error");
       const data = await res.json();
       
       setChatMessages(prev => [...prev, { role: 'ai', content: data.answer }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat Error:", error);
-      setChatMessages(prev => [...prev, { role: 'ai', content: "Lo siento, ha ocurrido un error al intentar responder." }]);
+      const isRateLimit = error.message === "RATE_LIMIT";
+      setChatMessages(prev => [...prev, { role: 'ai', content: isRateLimit ? "⚠️ **Límite de la IA alcanzado.** Por favor, espera unos instantes e inténtalo de nuevo." : "Lo siento, ha ocurrido un error al intentar responder." }]);
     } finally {
       setIsChatLoading(false);
     }

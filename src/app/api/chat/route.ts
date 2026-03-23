@@ -1,15 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
-const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY }); // Using the same API key logic as explain
-
 export async function POST(req: Request) {
   try {
-    const { pageText, query, history = [] } = await req.json();
+    const { apiKey, pageText, query, history = [] } = await req.json();
+
+    if (!apiKey) {
+      return NextResponse.json({ error: "API Key missing" }, { status: 401 });
+    }
 
     if (!pageText || !query) {
       return NextResponse.json({ error: "Missing page context or query" }, { status: 400 });
     }
+
+    const ai = new GoogleGenAI({ apiKey });
 
     // Format history if available to give context
     const historyText = history.length > 0 
@@ -38,8 +42,11 @@ Usa formato Markdown.
     });
 
     return NextResponse.json({ answer: response.text });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
+    if (error?.status === 429) {
+      return NextResponse.json({ error: "RATE_LIMIT" }, { status: 429 });
+    }
     return NextResponse.json({ error: "Failed to generate answer" }, { status: 500 });
   }
 }
